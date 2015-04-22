@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Chaos</title>
+	<style>
+	html, body {
+		margin: 0;
+		padding: 0;
+	}
+	.movable {
+		position: absolute;
+		display: block;
+	}
+	</style>
+	<script src="jquery.js"></script>
+	<script>
+
+	function Point(xval, yval)
+	{
+		this.x = xval;
+		this.y = yval;
+	}
+	console.log((new Point(10, 20)).y);
+	var dragging = "";
+	var dragPos = new Point();
+
+	$("document").ready(function() {
+		$(window).mousemove(function(m) {
+			if(dragging != "")
+			{
+				console.log(dragPos.x);
+				var xpos = m.pageX-dragPos.x;
+				var ypos = m.pageY-dragPos.y;
+				$("#"+dragging).css("left", xpos);
+				$("#"+dragging).css("top", ypos);
+			}
+		});
+
+		$(".movable").mousedown(function(m) {
+			dragging = $(this).attr("id");
+			var lx = $("#"+dragging).css("left") == "auto" ? "0px" : $("#"+dragging).css("left");
+			lx = Number(lx.slice(0,lx.length-3));
+			var ly = $("#"+dragging).css("top") == "auto" ? "0px" : $("#"+dragging).css("top");
+			ly = Number(ly.slice(0,ly.length-3));
+			dragPos = new Point(m.pageX - lx, m.pageY - ly);
+			console.log(dragPos.x);
+		})
+
+		$(window).mouseup(function() {
+			dragging = "";
+			var dragPos = new Point();
+		})
+
+
+
+	})
+	</script>
+</head>
+<body>
+	<div id="movable1" class="movable" style="background-color:red;width:100px;height:100px;"></div>
+</body>
+</html>
