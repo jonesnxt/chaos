@@ -3,6 +3,10 @@
 <head>
 	<title>Chaos</title>
 	<style>
+	body {
+		background: url(client_background.png) repeat center center fixed;
+	}
+
 	html, body {
 		margin: 0;
 		padding: 0;
@@ -28,20 +32,20 @@
 		$(window).mousemove(function(m) {
 			if(dragging != "")
 			{
-				console.log(dragPos.x);
-				var xpos = m.pageX-dragPos.x;
-				var ypos = m.pageY-dragPos.y;
+				var xpos = m.pageX-dragPos.x < 0 ? "0px" : (m.pageX-dragPos.x)+"px";
+				var ypos = m.pageY-dragPos.y < 0 ? "0px" : (m.pageY-dragPos.y)+"px";
 				$("#"+dragging).css("left", xpos);
 				$("#"+dragging).css("top", ypos);
+				console.log($("#"+dragging).css("left") + " "+ dragPos.y)
 			}
 		});
 
 		$(".movable").mousedown(function(m) {
 			dragging = $(this).attr("id");
 			var lx = $("#"+dragging).css("left") == "auto" ? "0px" : $("#"+dragging).css("left");
-			lx = Number(lx.slice(0,lx.length-3));
+			lx = Number(lx.slice(0,lx.length-2));
 			var ly = $("#"+dragging).css("top") == "auto" ? "0px" : $("#"+dragging).css("top");
-			ly = Number(ly.slice(0,ly.length-3));
+			ly = Number(ly.slice(0,ly.length-2));
 			dragPos = new Point(m.pageX - lx, m.pageY - ly);
 			console.log(dragPos.x);
 		})
@@ -57,6 +61,15 @@
 	</script>
 </head>
 <body>
-	<div id="movable1" class="movable" style="background-color:red;width:100px;height:100px;"></div>
+	<div id="movable1" class="movable" style="background-color:red;width:100px;height:100px;">this is a shape</div>
+	<div id="movable2" class="movable" style="background-color:blue;width:40px;height:140px;left:150px"></div>
+	<div id="center" class="movable" style="background-color:rgba(0, 75, 103, 0.4);width:400px;height:400px;border-radius:200px;left:200;top:200px;">
+		<div style="background-color:rgba(0, 85, 113, 0.6);position:relative;width:350px;height:350px;border-radius:300px;left:25px;top:25px;">
+
+			<div style="background-color:rgba(0, 142, 186, 0.8);position:relative;width:300px;height:300px;border-radius:300px;left:25px;top:25px;">
+
+			</div>
+		</div>
+	</div>
 </body>
 </html>
