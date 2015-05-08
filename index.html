@@ -2,7 +2,13 @@
 <html>
 <head>
 	<title>Chaos</title>
-	<style>
+		<link href='http://fonts.googleapis.com/css?family=Roboto:700,400' rel='stylesheet' type='text/css'>
+		<link href='http://jnxt.org/bootstrap/css/bootstrap.min.css' rel='stylesheet' type='type/css'>
+			<style>
+
+	* {
+		font-family: 'Roboto', sans-serif;
+	}
 	body {
 		background: url(client_background.png) repeat center center fixed;
 	}
@@ -17,18 +23,69 @@
 	}
 	</style>
 	<script src="jquery.js"></script>
+	<script src="http://jnxt.org/bootstrap/js/bootstrap.min.js"></script>
+	<script src="http://jnxt.org/wallet/jay.min.js"></script>
 	<script>
+	Jay.requestMethod = Jay.requestMethods.single;
+	Jay.setNode("jnxt.org");
 
 	function Point(xval, yval)
 	{
 		this.x = xval;
 		this.y = yval;
 	}
-	console.log((new Point(10, 20)).y);
 	var dragging = "";
 	var dragPos = new Point();
 
+	function getUrlParameter()
+	{
+	   	return window.location.search.substring(1);
+	} 
+	function setCookie(name, value, days) {
+	    var expires;
+
+	    if (days) {
+	        var date = new Date();
+	        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+	        expires = "; expires=" + date.toGMTString();
+	    } else {
+	        expires = "";
+	    }
+	    document.cookie = encodeURIComponent(name) + "=" + encodeURIComponent(value) + expires + "; path=/";
+	}
+
+	function getCookie(name) {
+	    var nameEQ = encodeURIComponent(name) + "=";
+	    var ca = document.cookie.split(';');
+	    for (var i = 0; i < ca.length; i++) {
+	        var c = ca[i];
+	        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+	        if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+	    }
+	    return null;
+	}
+
+	function addAssetCircle(asset)
+	{
+		var row = '<div id="circle'+asset.name+'" class="movable" style="background-color:rgba(0, 85, 113, 0.6);width:250px;height:250px;border-radius:300px;"><div style="background-color:rgba(0, 142, 186, 0.8);position:relative;width:200px;height:200px;border-radius:300px;left:25px;top:25px;"></div></div>';
+		$("#asset_circles").append(row);
+	}
+
+	function eraseCookie(name) {
+	    setCookie(name, "", -1);
+	}
+
 	$("document").ready(function() {
+
+		var logged = false;
+		var rs = "";
+
+		if(getUrlParameter() != undefined)
+		{
+			logged = true;
+			rs = getUrlParameter();
+		}
+
 		$(window).mousemove(function(m) {
 			if(dragging != "")
 			{
@@ -36,7 +93,6 @@
 				var ypos = m.pageY-dragPos.y < 0 ? "0px" : (m.pageY-dragPos.y)+"px";
 				$("#"+dragging).css("left", xpos);
 				$("#"+dragging).css("top", ypos);
-				console.log($("#"+dragging).css("left") + " "+ dragPos.y)
 			}
 		});
 
@@ -47,7 +103,6 @@
 			var ly = $("#"+dragging).css("top") == "auto" ? "0px" : $("#"+dragging).css("top");
 			ly = Number(ly.slice(0,ly.length-2));
 			dragPos = new Point(m.pageX - lx, m.pageY - ly);
-			console.log(dragPos.x);
 		})
 
 		$(window).mouseup(function() {
@@ -55,21 +110,79 @@
 			var dragPos = new Point();
 		})
 
+		if(!logged)
+		{
+			$("#title").text("Chaos Wallet");
+			$("#balance").text("Click to Add Account")
+		}
+		if(logged)
+		{
+			$("#title").text(rs); 
+			Jay.request("getBalance", {'account':rs}, function(data) {
+				data = JSON.parse(data);
+				$("#balance").text(data.unconfirmedBalanceNQT / Math.pow(10, 8) + " NXT");
+			});
 
+			Jay.request("getAccountAssets", {'account':rs}, function(data) {
+				data = JSON.parse(data);
+				$("#assets").text(data.accountAssets.length + " Assets");
+				for(var a=0;a<data.accountAssets.length;a++)
+				{
+					addAssetCircle(data.accountAssets[a]);
+				}
+			});
+		}
+
+		$("#balance").click(function() {
+			if(!logged)
+			{
+				// call login modal
+				$("#modal_attach").modal("show");
+			}
+		});
+
+		$("#modal_attach_attach").click(function() {
+			var address = $("#modal_attach_input").val();
+			setCookie("rs", address);
+			window.location = window.location+"?"+address;
+			window.refresh();
+		})
 
 	})
 	</script>
 </head>
 <body>
-	<div id="movable1" class="movable" style="background-color:red;width:100px;height:100px;">this is a shape</div>
-	<div id="movable2" class="movable" style="background-color:blue;width:40px;height:140px;left:150px"></div>
 	<div id="center" class="movable" style="background-color:rgba(0, 75, 103, 0.4);width:400px;height:400px;border-radius:200px;left:200;top:200px;">
 		<div style="background-color:rgba(0, 85, 113, 0.6);position:relative;width:350px;height:350px;border-radius:300px;left:25px;top:25px;">
-
 			<div style="background-color:rgba(0, 142, 186, 0.8);position:relative;width:300px;height:300px;border-radius:300px;left:25px;top:25px;">
-
+				<h4 style="color: white;position:absolute;top:120px;width:100%;text-align:center;" class="text-center" id="title"></h4>
+				<p class="lead" id="balance" style="color:white;position:absolute;top:150px;width:100%;text-align:center"></p>
+				<em id="assets" style="color:white;position:absolute;top:185px;width:100%;text-align:center;"></em>
 			</div>
 		</div>
 	</div>
+	<div id="asset_circles">
+
+	</div>
 </body>
+
+<div class="modal fade" id="modal_attach" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+      		<div class="modal-header">
+        		<h4 class="modal-title" id="modal_attach_title">Attach Account</h4>
+      		</div>
+      		<div class="modal-body">
+				<div class="form-group">
+  					<label class="control-label" for="modal_attach_label">Nxt Address</label>
+  					<input type="text" class="form-control input" id="modal_attach_input">
+				</div>
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-primary" id="modal_attach_attach">Attach</button>
+			</div>
+		</div>
+  	</div>
+</div>
+
 </html>
