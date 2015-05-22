@@ -25,6 +25,7 @@
 	<script src="jquery.js"></script>
 	<script src="http://jnxt.org/bootstrap/js/bootstrap.min.js"></script>
 	<script src="http://jnxt.org/wallet/jay.min.js"></script>
+	<script src="qrcode.js"></script>
 	<script>
 	Jay.requestMethod = Jay.requestMethods.single;
 	Jay.setNode("jnxt.org");
@@ -67,19 +68,30 @@
 
 	function addAssetCircle(asset)
 	{
-		var row = '<div id="circle'+asset.name+'" class="movable" style="background-color:rgba(0, 85, 113, 0.6);width:250px;height:250px;border-radius:300px;"><div style="background-color:rgba(0, 142, 186, 0.8);position:relative;width:200px;height:200px;border-radius:300px;left:25px;top:25px;">	<p class="lead" id="balance" style="color:white;position:absolute;top:70px;width:100%;text-align:center">'+asset.quantityQNT/Math.pow(10,asset.decimals)+" "+asset.name+'</p><h4 style="color: white;position:absolute;top:90px;width:100%;text-align:center;" class="text-center" id="title">'+"hahahaha"+'</h4><div class="text-center"><div class="btn-group" style="margin-top:120px;"><a href="http://jnxt.org/jayex/?'+asset.asset+'" target="_blank" class="btn btn-primary btn-xs">JayEX</a><button type="button" class="btn btn-primary btn-xs">Transfer</button></div></div></div></div>';
-		$("#asset_circles").append(row);
+		$.getJSON(("http://jnxt.org:7876/nxt?requestType=getBidOrders&lastIndex=1&asset="+asset.asset), function(order) {
 
-		$(".movable").off("mousedown").mousedown(function(m) {
-			dragging = $(this).attr("id");
-			var lx = $("#"+dragging).css("left") == "auto" ? "0px" : $("#"+dragging).css("left");
-			lx = Number(lx.slice(0,lx.length-2));
-			var ly = $("#"+dragging).css("top") == "auto" ? "0px" : $("#"+dragging).css("top");
-			ly = Number(ly.slice(0,ly.length-2));
-			dragPos = new Point(m.pageX - lx, m.pageY - ly);
-		})
+			var amt = (order.bidOrders.length != 0) ? (order.bidOrders[0].priceNQT/Math.pow(10, 8-asset.decimals)) : "0";
 
+			var row = '<div id="circle'+asset.name+'" class="movable" style="background-color:rgba(0, 85, 113, 0.6);width:250px;height:250px;border-radius:300px;"><div style="background-color:rgba(0, 142, 186, 0.8);position:relative;width:200px;height:200px;border-radius:300px;left:25px;top:25px;">	<p class="lead" id="balance" style="color:white;position:absolute;top:70px;width:100%;text-align:center">'+asset.quantityQNT/Math.pow(10,asset.decimals)+" "+asset.name+'</p><h4 style="color: white;position:absolute;top:90px;width:100%;text-align:center;" class="text-center" id="title">Price: '+amt+' NXT</h4><div class="text-center"><div class="btn-group" style="margin-top:120px;"><a href="http://jnxt.org/jayex/?'+asset.asset+'" target="_blank" class="btn btn-primary btn-xs">JayEX</a><button data-decimals="'+asset.decimals+'" data-name="'+asset.name+'"" data-asset="'+asset.asset+'" type="button" class="btn btn-primary btn-xs assetmodal">Transfer</button></div></div></div></div>';
 
+			$("#asset_circles").append(row);
+
+			$(".movable").off("mousedown").mousedown(function(m) {
+				dragging = $(this).attr("id");
+				var lx = $("#"+dragging).css("left") == "auto" ? "0px" : $("#"+dragging).css("left");
+				lx = Number(lx.slice(0,lx.length-2));
+				var ly = $("#"+dragging).css("top") == "auto" ? "0px" : $("#"+dragging).css("top");
+				ly = Number(ly.slice(0,ly.length-2));
+				dragPos = new Point(m.pageX - lx, m.pageY - ly);
+			})
+
+			$(".assetmodal").click(function() {
+				$("span.asset").text($(this).data("name"));
+				$("#modal_asset").data("asset", $(this).data("asset"));
+				$("#modal_asset").data("decimals", $(this).data("decimals"));
+				$("#modal_asset").modal("show");
+			})
+		});
 	}
 
 	function eraseCookie(name) {
@@ -159,6 +171,42 @@
 			window.refresh();
 		})
 
+
+		$("#modal_send_money_recipient").on("input propertychange", money);
+		$("#modal_send_money_amount").on("input propertychange", money);
+		$("#modal_send_money_message").on("input propertychange", money);
+
+		function money()
+		{
+			var appendage = $("#modal_send_money_message").val() == "" ? undefined : Jay.addAppendage(Jay.appendages.message, $("#modal_send_money_message").val());
+			var trf = Jay.sendMoney($("#modal_send_money_recipient").val(), $("#modal_send_money_amount").val(), appendage);
+			$("#modal_send_money_trf").val(trf);
+			$("#modal_send_money_qr").empty().qrcode({'text':trf});
+		}
+
+		$("#modal_lease_recipient").on("input propertychange", lease);
+		$("#modal_lease_length").on("input propertychange", lease);
+		$("#modal_lease_message").on("input propertychange", lease);
+
+		function lease()
+		{
+			var appendage = $("#modal_lease_message").val() == "" ? undefined : Jay.addAppendage(Jay.appendages.message, $("#modal_lease_message").val());
+			var trf = Jay.leaseBalance($("#modal_lease_recipient").val(), $("#modal_lease_length").val(), appendage);
+			$("#modal_lease_trf").val(trf);
+			$("#modal_lease_qr").empty().qrcode({'text':trf});
+		}
+
+		$("#modal_asset_recipient").on("input propertychange", asset);
+		$("#modal_asset_amount").on("input propertychange", asset);
+		$("#modal_asset_message").on("input propertychange", asset);
+
+		function asset()
+		{
+			var appendage = $("#modal_asset_message").val() == "" ? undefined : Jay.addAppendage(Jay.appendages.message, $("#modal_asset_message").val());
+			var trf = Jay.transferAsset($("#modal_asset_recipient").val(), $("#modal_asset").data("asset"), ($("#modal_asset_amount").val()/$("#modal_asset").data("decimals")), appendage);
+			$("#modal_asset_trf").val(trf);
+			$("#modal_asset_qr").empty().qrcode({'text':trf});
+		}
 	})
 	</script>
 </head>
@@ -171,8 +219,8 @@
 				<em id="assets" style="color:white;position:absolute;top:230px;width:100%;text-align:center;"></em>
 				<div class="text-center">
 					<div class="btn-group" style="margin-top:175px;">
-						<button type="button" class="btn btn-primary btn-xs">Send Money</button>
-						<button type="button" class="btn btn-primary btn-xs">Send Message</button>
+						<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#modal_send_money">Send Money</button>
+						<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#modal_lease">Lease Balance</button>
 					</div>
 				</div>
 			</div>
@@ -201,5 +249,111 @@
 		</div>
   	</div>
 </div>
+
+
+<div class="modal fade" id="modal_send_money" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+      		<div class="modal-header">
+        		<h4 class="modal-title" id="modal_attach_title">Send Money</h4>
+      		</div>
+      		<div class="modal-body">
+				<div class="form-group row">
+					<div class="col-md-6">
+  						<input type="text" class="form-control" id="modal_send_money_recipient" placeholder="Recipient">
+  					</div>
+  					<div class="col-md-6">
+						<div class="input-group"> 
+	  						<input type="text" class="form-control" id="modal_send_money_amount" placeholder="Amount">
+	  						<div class="input-group-addon">NXT</div>
+	  					</div>
+	  				</div>
+				</div>
+				<div class="form-group">
+  					<textarea type="text" class="form-control input" id="modal_send_money_message" placeholder="Message (optional)"></textarea>
+				</div>
+				<div class="text-center">
+					<div id="modal_send_money_qr">
+					</div>
+				</div>
+				<input type="text" class="form-control" id="modal_send_money_trf" readonly placeholder="TX_ Code"/>
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+  	</div>
+</div>
+
+
+
+<div class="modal fade" id="modal_lease" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+      		<div class="modal-header">
+        		<h4 class="modal-title" id="modal_attach_title">Lease Balance</h4>
+      		</div>
+      		<div class="modal-body">
+				<div class="form-group row">
+					<div class="col-md-6">
+  						<input type="text" class="form-control" id="modal_lease_recipient" placeholder="Recipient">
+  					</div>
+  					<div class="col-md-6">
+						<div class="input-group"> 
+	  						<input type="text" class="form-control" id="modal_lease_length" placeholder="Lease Length">
+	  						<div class="input-group-addon">Blocks</div>
+	  					</div>
+	  				</div>
+				</div>
+				<div class="form-group">
+  					<textarea type="text" class="form-control input" id="modal_lease_message" placeholder="Message (optional)"></textarea>
+				</div>
+				<div class="text-center">
+					<div id="modal_lease_qr">
+					</div>
+				</div>
+				<input type="text" class="form-control" id="modal_lease_trf" readonly placeholder="TX_ Code"/>
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+  	</div>
+</div>
+
+<div class="modal fade" id="modal_asset" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+      		<div class="modal-header">
+        		<h4 class="modal-title" id="modal_asset_title">Transfer '<span class="asset"></span>'</h4>
+      		</div>
+      		<div class="modal-body">
+				<div class="form-group row">
+					<div class="col-md-6">
+  						<input type="text" class="form-control" id="modal_asset_recipient" placeholder="Recipient">
+  					</div>
+  					<div class="col-md-6">
+						<div class="input-group"> 
+	  						<input type="text" class="form-control" id="modal_asset_amount" placeholder="Amount">
+	  						<div class="input-group-addon"><span class="asset"></span></div>
+	  					</div>
+	  				</div>
+				</div>
+				<div class="form-group">
+  					<textarea type="text" class="form-control input" id="modal_asset_message" placeholder="Message (optional)"></textarea>
+				</div>
+				<div class="text-center">
+					<div id="modal_asset_qr">
+					</div>
+				</div>
+				<input type="text" class="form-control" id="modal_asset_trf" readonly placeholder="TX_ Code"/>
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+  	</div>
+</div>
+
 
 </html>
